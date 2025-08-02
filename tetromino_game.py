@@ -66,6 +66,10 @@ class Tetromino():
                 self.gridy+=1
                 return 0
         return 0
+    def hard_drop(self,board):
+        while self.gravity(board)==0: #continuously call self.gravity
+            pass
+        self.gravity_counter=self.gravity_threshold  #no delay before spawning new piece
     def draw(self,screen,margin):
         margin=max(2,margin-margin%2)
         for y,row in enumerate(self.rotation_config[self.rotation]):
@@ -74,9 +78,9 @@ class Tetromino():
                     square_size=self.__class__.square_size
                     pygame.draw.rect(screen,self.color,pygame.Rect((self.gridx+x)*square_size+margin/2,(self.gridy+y)*square_size+margin/2,square_size-margin,square_size-margin))
     def update(self,screen,board,margin):
-        delete_self=self.gravity(board)
+        should_delete_self=self.gravity(board)
         self.draw(screen,margin)
-        return delete_self
+        return should_delete_self
     
 class Board():
     def __init__(self,width=10,height=20):
@@ -154,7 +158,7 @@ class Game():
         self.next_piece_type=random.choice(("I","O","T","S","Z","J","L"))
         return spawned_piece
     def handle_keydown_input(self,keyboard_input):
-        if not self.paused:
+        if (not self.paused) and self.window_focused:
             if keyboard_input==pygame.K_a or keyboard_input==pygame.K_LEFT:
                 self.das_direction="left"
                 self.das_counter=0
@@ -171,9 +175,11 @@ class Game():
                 self.current_piece.rotate("anticlockwise",self.board)
             elif keyboard_input==pygame.K_x:
                 self.current_piece.rotate("clockwise",self.board)
+            elif keyboard_input==pygame.K_SPACE:
+                self.current_piece.hard_drop(self.board)
             elif keyboard_input==pygame.K_ESCAPE:
                 self.paused=True
-        else:
+        elif self.paused:
             if keyboard_input==pygame.K_ESCAPE:
                 self.paused=False
                 self.das_direction=None
@@ -261,6 +267,8 @@ class Game():
     def update(self,screen,margin=2):
         if (not self.paused) and self.window_focused:
             self.handle_piece_movement()
+            if bool(self.current_piece.update(screen,self.board,margin)):
+                self.current_piece=self.spawn_piece()
             lines_cleared=self.board.update(screen,margin)
             if lines_cleared>0:
                 self.score+=self.__class__.lines_to_score[str(lines_cleared)]*(self.level+1)
@@ -271,8 +279,6 @@ class Game():
                     self.__class__.highscore=self.score
                     with open("config/highscore.txt","w") as highscore_file:
                         highscore_file.write(str(self.score))
-            if bool(self.current_piece.update(screen,self.board,margin)):
-                self.current_piece=self.spawn_piece()
             self.draw(screen)
             self.draw_next_piece(screen,margin)
         else:
