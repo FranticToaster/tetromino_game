@@ -36,14 +36,15 @@ class Tetromino():
                         return False
         return True
     def rotate(self,direction,board):
+        rotations=len(self.rotation_config)
         if direction=="clockwise":
-            self.rotation=(self.rotation+1)%4
+            self.rotation=(self.rotation+1)%rotations
             if not self.is_legal_position(board):
-                self.rotation=(self.rotation-1)%4
+                self.rotation=(self.rotation-1)%rotations
         elif direction=="anticlockwise":
-            self.rotation=(self.rotation-1)%4
+            self.rotation=(self.rotation-1)%rotations
             if not self.is_legal_position(board):
-                self.rotation=(self.rotation+1)%4
+                self.rotation=(self.rotation+1)%rotations
     def check_move_down_collision(self,board):
         for y,row in enumerate(self.rotation_config[self.rotation]):
             for x,cell in enumerate(row):
@@ -138,7 +139,7 @@ class Game():
 
         self.starting_level=starting_level
         self.level=self.starting_level
-        self.spawn_list=["LOL"]#["I","O","T","S","Z","J","L"]
+        self.spawn_list=["I","O","T","S","Z","J","L"]
         self.next_piece_type=random.choice(self.spawn_list)
         self.current_piece=self.spawn_piece()
         self.total_lines_cleared=0
@@ -222,6 +223,11 @@ class Game():
             elif keyboard_input==pygame.K_9:
                 self.replace_current("LOL")
                 self.spawn_list=("LOL",)
+
+            #clear board
+            elif keyboard_input==pygame.K_c:
+                w,h=self.board.width,self.board.height
+                self.board=Board(w,h)
         elif self.paused:
             if keyboard_input==pygame.K_ESCAPE:
                 self.paused=False
@@ -392,7 +398,7 @@ class Playing_game_state(State):
         self.state_machine=kwargs["state_machine"]
         self.clock=kwargs["clock"]
         self.starting_level=kwargs["starting_level"]
-        board=Board()
+        board=Board(40,20)
         self.game=Game(board,self.screen,self.starting_level,window_focused=kwargs["window_focused"])
     def exit(self,*args,**kwargs):
         pass
@@ -449,7 +455,7 @@ def main():
         starting_level=0'''
     starting_level=5
     
-    screen_width,screen_height=(600,600)
+    screen_width,screen_height=(0,0)
     screen=pygame.display.set_mode((screen_width,screen_height))
 
     state_machine=State_machine()
