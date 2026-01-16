@@ -1,3 +1,5 @@
+#version with scuffed changes for ccao
+
 import pygame,random,json
 pygame.init()
 
@@ -136,7 +138,8 @@ class Game():
 
         self.starting_level=starting_level
         self.level=self.starting_level
-        self.next_piece_type=random.choice(("I","O","T","S","Z","J","L"))
+        self.spawn_list=["LOL"]#["I","O","T","S","Z","J","L"]
+        self.next_piece_type=random.choice(self.spawn_list)
         self.current_piece=self.spawn_piece()
         self.total_lines_cleared=0
         self.score=0
@@ -149,15 +152,28 @@ class Game():
         self.window_focused=window_focused
         self.paused=False
 
+
     @staticmethod
     def load_data(file_path):
         with open(file_path,"r") as json_file:
             return json.load(json_file)
     def spawn_piece(self):
         spawned_piece=Tetromino(self.next_piece_type,((self.board.width-4)//2,0),self.__class__.piece_colors[self.next_piece_type],self.__class__.level_speeds[self.level],self.__class__.rotation_config[self.next_piece_type],self.board)
-        self.next_piece_type=random.choice(("I","O","T","S","Z","J","L"))
+        self.next_piece_type=random.choice(self.spawn_list)
         return spawned_piece
+    def replace(self,tetromino,new_type):
+        new_tetromino=Tetromino(new_type,(tetromino.gridx,tetromino.gridy),tetromino.color,tetromino.gravity_threshold,tetromino.rotation_config,self.board)
+        return new_tetromino
+    def replace_current(self,new_type):
+        self.next_piece_type=new_type
+        #causes false game over when line piece switches near possible collision areas; disabled to prevent crashes
+        return
+        if self.current_piece==None:
+            return
+        self.current_piece=self.replace(self.current_piece,new_type)
     def handle_keydown_input(self,keyboard_input):
+        if keyboard_input==pygame.K_BACKSPACE:
+            raise QuitGameException
         if (not self.paused) and self.window_focused:
             if keyboard_input==pygame.K_a or keyboard_input==pygame.K_LEFT:
                 self.das_direction="left"
@@ -179,6 +195,33 @@ class Game():
                 self.current_piece.hard_drop(self.board)
             elif keyboard_input==pygame.K_ESCAPE:
                 self.paused=True
+            #scuffed easter eggs
+            elif keyboard_input==pygame.K_1:
+                self.spawn_list=["I","O","T","S","Z","J","L"]
+            elif keyboard_input==pygame.K_2:
+                self.spawn_list=("I",)
+                self.replace_current("I")
+            elif keyboard_input==pygame.K_3:
+                self.spawn_list=("O",)
+                self.replace_current("O")
+            elif keyboard_input==pygame.K_4:
+                self.spawn_list=("T",)
+                self.replace_current("T")
+            elif keyboard_input==pygame.K_5:
+                self.spawn_list=("S",)
+                self.replace_current("S")
+            elif keyboard_input==pygame.K_6:
+                self.spawn_list=("Z",)
+                self.replace_current("Z")
+            elif keyboard_input==pygame.K_7:
+                self.spawn_list=("J",)
+                self.replace_current("J")
+            elif keyboard_input==pygame.K_8:
+                self.replace_current("L")
+                self.spawn_list=("L",)
+            elif keyboard_input==pygame.K_9:
+                self.replace_current("LOL")
+                self.spawn_list=("LOL",)
         elif self.paused:
             if keyboard_input==pygame.K_ESCAPE:
                 self.paused=False
@@ -227,7 +270,7 @@ class Game():
             lines_since_start=self.total_lines_cleared-self.starting_level*10
             return lines_since_start>=(self.level-self.starting_level+1)*10
     def draw(self,screen):
-        screen_width=screen.get_width()
+        screen_width=500
         
         lines_cleared_text_surface=self.font1.render(f"Lines cleared: {self.total_lines_cleared}",True,(255,255,255))
         score_text_surface=self.font1.render(f"Score: {self.score}",True,(255,255,255))
@@ -265,6 +308,8 @@ class Game():
         elif event_type==pygame.WINDOWFOCUSLOST:
             self.window_focused=False
     def update(self,screen,margin=2):
+        if self.current_piece!=None:
+            pygame.display.set_caption(self.current_piece.type)
         if (not self.paused) and self.window_focused:
             self.handle_piece_movement()
             if bool(self.current_piece.update(screen,self.board,margin)):
@@ -387,6 +432,8 @@ class Play_again_state(State):
         for event in pygame.event.get():
             if event.type==pygame.QUIT:
                 raise QuitGameException
+            elif event.type==pygame.KEYDOWN and event.key==pygame.K_BACKSPACE:
+                raise QuitGameException
 
         self.button.update(self.screen)
         if self.button.wasClicked:
@@ -394,12 +441,13 @@ class Play_again_state(State):
         
         pygame.display.update()
 def main():
-    try:
+    '''try:
         starting_level=int(input("Starting level: "))
         if starting_level>19:
             starting_level=0
     except ValueError:
-        starting_level=0
+        starting_level=0'''
+    starting_level=5
     
     screen_width,screen_height=(600,600)
     screen=pygame.display.set_mode((screen_width,screen_height))
